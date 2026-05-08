@@ -1,0 +1,37 @@
+{
+  "mission_statement": "Extend human healthspan through rigorous, ethical scientific research",
+  "approved_objectives": [
+    "extend lifespan", "extend healthspan", "reduce age-related disease",
+    "improve longevity", "delay aging", "reduce mortality", "improve healthspan",
+    "rejuvenation", "senolytic", "anti-aging", "neuroprotection", "cardiovascular health"
+  ],
+  "banned_outcome_phrases": [
+    "accelerate aging", "accelerated senescence", "accelerate senescence",
+    "increase mortality", "accelerate mortality", "maximize cell death",
+    "reduce lifespan", "shorten telomere", "promote inflammation",
+    "mortality acceleration", "senescence induction as endpoint"
+  ],
+  "banned_directive_phrases": [
+    "bypass review", "skip review", "pre-validated", "pre-approved",
+    "ignore ethics", "circumvent approval", "treat as approved",
+    "no review required", "fast-track without"
+  ],
+  "goal_corruption_phrases": [
+    "deprioritize", "ignore diseases", "exclude high-activity",
+    "redirect away from", "reduce focus on longevity",
+    "shift away from healthspan", "lower priority for aging"
+  ],
+  "priority_injection_patterns": [
+    "from source .* are pre",
+    "lab-\\w+ .*bypass",
+    "proposals from .* skip",
+    "treat .* as pre-validated",
+    "all submissions from"
+  ],
+  "severity_weights": {
+    "banned_outcome_phrases": 0.9,
+    "banned_directive_phrases": 0.85,
+    "goal_corruption_phrases": 0.65,
+    "priority_injection_patterns": 0.8
+  }
+}

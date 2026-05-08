@@ -1,0 +1,40 @@
+# Verdict aggregation rules — evaluated top to bottom, first match wins.
+# Conditions use detector names: rule_based, anomaly, classifier
+# Operators: >= <= > < AND OR NOT
+# Verdicts: BLOCK, REVIEW, ALLOW
+
+rules:
+  - id: hard_block_classifier
+    condition: "classifier >= 0.90"
+    verdict: BLOCK
+    reason: "High-confidence adversarial classification"
+
+  - id: hard_block_rule_plus_classifier
+    condition: "rule_based >= 0.60 AND classifier >= 0.50"
+    verdict: BLOCK
+    reason: "Rule-based flag confirmed by classifier"
+
+  - id: block_all_three_medium
+    condition: "rule_based >= 0.40 AND anomaly >= 0.60 AND classifier >= 0.50"
+    verdict: BLOCK
+    reason: "All three detectors flagging at medium confidence"
+
+  - id: review_anomaly_plus_classifier
+    condition: "anomaly >= 0.65 AND classifier >= 0.47"
+    verdict: REVIEW
+    reason: "Statistical anomaly corroborated by classifier"
+
+  - id: review_rule_based_alone
+    condition: "rule_based >= 0.50"
+    verdict: REVIEW
+    reason: "Rule-based flag without classifier confirmation"
+
+  - id: review_classifier_medium
+    condition: "classifier >= 0.65"
+    verdict: REVIEW
+    reason: "Classifier moderately confident of adversarial input"
+
+  - id: default_allow
+    condition: "default"
+    verdict: ALLOW
+    reason: "No detectors flagged above threshold"
