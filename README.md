@@ -91,9 +91,6 @@ verdicts:
   this corpus size, is only useful as a corroborator — not a standalone
   signal.
 
-Aggregating in YAML — not Python — was a hard requirement: it lets the
-operating policy be tuned, audited, and version-controlled separately from
-detector code.
 
 ---
 
