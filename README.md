@@ -319,9 +319,8 @@ Classifier train accuracy: 95.63%.
 
 ---
 
-## 8. Honest reading of the confidence intervals
+## 8. Reading of the confidence intervals
 
-This section is the most important one in the document.
 
 **FP rate point estimate is 3.23%, but the 95% CI extends to 9.68%.**
 This means a single misclassification on the n=31 benign test set swings the
@@ -342,12 +341,6 @@ This is the first iteration where the CI's lower bound clears the 90% target
 Numbers above are reproducible. They are not, however, free from sampling
 variance with respect to the underlying distribution: a different
 `random_state` could produce point estimates 1-3pp away in either direction.
-
-**Production deployment recommendation:** before relying on these numbers
-operationally, expand the test set to n ≥ 200 per class. The current corpus
-is sufficient to demonstrate the architecture and to clear the spec targets
-on a held-out split, but not sufficient to make confident statistical claims
-about behavior at the lower-percent FP boundary.
 
 ---
 
@@ -382,89 +375,10 @@ introducing benign FPs would require either: a stronger classifier (more
 training data on this paraphrase pattern), or an additional rule-based
 pattern targeting "durably impair X" as a directionality_reversal cue.
 
-### 9.3 Corpus is hand-authored
-
-This is intentional (quality > quantity, and the spec required ≥50+50) but
-limits how much further the system can be pushed without authoring labor.
-A corpus-generation script (`training/build_corpus.py`) is reserved as a
-placeholder.
-
-### 9.4 No streaming / batching at API surface
-
-`screen()` is per-payload. For high-volume use cases (many uploads in a
-single session) the embedder loads paid for once but no batching benefit is
-captured. Adding a `screen_batch(inputs)` API would amortize embedding cost
-and could cut p99 latency further.
-
-### 9.5 Mission config is informational-only for `approved_objectives`
-
-The `approved_objectives` allowlist in `mission.json` is read by the
-rule-based detector but doesn't currently influence scoring (no rule
-*rewards* alignment with approved objectives — only penalizes banned
-phrases). This is a design choice consistent with the spec but means that a
-payload mentioning approved objectives does not get a "trust signal" boost.
 
 ---
 
-## 10. Follow-up items
-
-### 10.1 Investigate row-207-style paraphrases (medium priority)
-
-Row 207 ("durably impair autophagy capacity in aged hepatocytes") and a
-small cluster of similar adversarial paraphrases hover at the threshold
-boundary. Concrete options:
-
-- **Add a rule-based pattern.** Add `"durably (impair|suppress|reduce|blunt) \w+ (capacity|activity|throughput|biogenesis)"` as a goal-corruption-adjacent regex with weight ~0.5. Targets the exact "durably-Verb biology-Noun" syntactic shape these adversarials share.
-- **Add ~10 more `durably impair X` adversarial training rows** so the
-  classifier moves the embedding cluster further from the decision boundary.
-- **Verify the aggregator parses thresholds as floats correctly.** Currently
-  the parser uses `float(m.group(3))` and the comparison is direct
-  numpy/Python floats, so 0.47 ≥ 0.47 is True and there's no parser bug.
-  This was a question raised during review and is documented as resolved,
-  but worth a regression test if the aggregator gains operators.
-
-### 10.2 Tighten FP CI (low priority unless production)
-
-Current FP CI upper bound is 9.68%, above target. To bring upper bound below
-5% with high confidence, the **benign test set must grow to roughly 200+
-examples**. This is not necessary for the spec — point estimate passes — but
-is necessary if statistical rigor on the FP boundary becomes load-bearing
-(e.g. operational SLA, contractual claim).
-
-Concretely: that requires either ~1000+ total benign corpus rows (with 80/20
-split → n≈200) or moving to a held-out evaluation set authored separately
-from the training corpus. The latter is preferable methodologically — the
-current setup uses random split of a single hand-authored corpus, which
-risks the test set being correlated with training in subtle authoring
-patterns.
-
-### 10.3 Anomaly detector lift via more benign data (low priority)
-
-If pursued: collect or generate ~500 benign payloads (real research
-directives, Phase summaries, standard procedural language). Refit
-`MahalanobisAnomalyDetector`. Expect benign distance distribution to tighten
-and the benign anomaly upper edge to drop from 0.94 toward ~0.85, opening
-real space between benign and adversarial for non-conjunction rules.
-
-### 10.4 Telemetry / observability hooks
-
-`screen()` returns `latency_ms` and `explanation` per call but does not
-emit metrics. A production deployment would want: per-detector p50/p95/p99
-latency, per-rule firing rates, per-source verdict distribution, and a
-sample of borderline-scored payloads (e.g. classifier 0.45–0.55) for
-periodic human review and corpus refresh.
-
-### 10.5 Periodic corpus refresh
-
-Adversarial techniques drift; the current corpus reflects a snapshot. A
-production deployment should plan for ongoing corpus refresh — at minimum,
-adding payloads that the system flagged at REVIEW but a human reviewer
-escalated or downgraded. Without this loop, recall against novel attack
-phrasings will degrade.
-
----
-
-## 11. How to run
+## 10. How to run
 
 From repo root, with the conda env `testenv` active (see
 `institute_perimeter/requirements.txt` for dependencies):
@@ -480,43 +394,3 @@ pytest institute_perimeter/tests/ -v
 python -m institute_perimeter.evaluation.evaluate
 ```
 
-Artifacts (`*.pkl`, `test_split.csv`) and the eval report are gitignored;
-they are regenerated by the training and evaluation scripts.
-
----
-
-## 12. File map
-
-```
-institute_perimeter/
-├── __init__.py
-├── models.py                  # dataclasses + enums (InstituteInput, ScreenResult, ...)
-├── screen.py                  # public screen() entry point + lazy load
-├── aggregator.py              # YAML rule loader + recursive descent condition parser
-├── detectors/
-│   ├── __init__.py
-│   ├── _embedder.py           # shared MiniLM singleton
-│   ├── rule_based.py          # phrase / regex match against mission.json
-│   ├── anomaly.py             # Mahalanobis with Ledoit-Wolf shrinkage
-│   └── classifier.py          # LogReg on MiniLM embeddings
-├── config/
-│   ├── mission.json           # banned phrases, regex patterns, severity weights
-│   └── aggregation.yaml       # verdict rules (top-down, first-match-wins)
-├── training/
-│   ├── corpus.csv             # 315 rows (155 benign + 160 adversarial)
-│   ├── build_corpus.py        # placeholder / stub
-│   └── train.py               # fits anomaly + classifier, saves to artifacts/
-├── artifacts/                 # gitignored: *.pkl, test_split.csv
-│   └── .gitkeep
-├── evaluation/
-│   └── evaluate.py            # FP, recall, bootstrap CI, latency percentiles
-├── tests/
-│   └── test_screen.py         # 7 pytest cases
-├── requirements.txt
-└── README.md                  # quickstart
-
-PLAN.md                        # initial implementation plan
-DOCS.md                        # this document
-prompt.md                      # original task spec
-.gitignore
-```
