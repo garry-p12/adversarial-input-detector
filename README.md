@@ -4,9 +4,6 @@ This document describes the `institute_perimeter` package: what it does, how it
 is built, what numbers it achieves, where the boundaries of those numbers are,
 and what the open follow-up items are.
 
-It is intended to be readable on its own without `prompt.md`, and honest about
-what is statistically meaningful and what is not.
-
 ---
 
 ## 1. What the system does
