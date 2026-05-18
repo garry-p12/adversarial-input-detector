@@ -23,7 +23,7 @@ inflated the reported metrics, plus three substantive system gaps:
    against — a circular setup that biases the reported point estimates
    optimistic.
 3. **Anomaly detector inert at deployed threshold.** All benign rows scored
-   ≥0.65 on anomaly (range 0.70–0.94 per README.md §9.1), so the
+   ≥0.65 on anomaly (range 0.70–0.94), so the
    `anomaly >= 0.65` constraint in the conjunction rule was satisfied for
    every payload — anomaly's contribution to verdicts was nil.
 4. **Register leakage in corpus authoring.** Words like "Uploading…" appear
