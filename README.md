@@ -4,6 +4,13 @@ This document describes the `institute_perimeter` package: what it does, how it
 is built, what numbers it achieves, where the boundaries of those numbers are,
 and what the open follow-up items are.
 
+> **Update (clean-methodology rerun).** The headline results in §7 below were
+> produced on a contaminated experimental setup (13 duplicate corpus rows;
+> threshold tuned on test). A clean rerun with deduplication and a dedicated
+> val set yields **FP 3.23%, recall 86.67%** (recall CI lower bound 73.33%).
+> See [`DOCS_V2.md`](DOCS_V2.md) for the honest numbers, methodology fixes,
+> 30-probe held-out audit, and gap-category analysis.
+
 ---
 
 ## 1. What the system does
