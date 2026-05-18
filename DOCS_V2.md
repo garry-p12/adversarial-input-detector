@@ -10,7 +10,7 @@ on a properly held-out test set, and the gap categories surfaced by a
 
 ## 1. Issues found in first feedback by Oleg
 
-The review (see project history) identified two methodology issues that
+The review identified two methodology issues that
 inflated the reported metrics, plus three substantive system gaps:
 
 1. **Train/test contamination.** 13 duplicate payload pairs in
