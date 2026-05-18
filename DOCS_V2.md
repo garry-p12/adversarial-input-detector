@@ -131,7 +131,7 @@ which is **above the 5% target**. One additional benign FP swings the
 rate to 6.45%. Practically: the FP target is not safely passed; it is
 passed on a point estimate with a confidence interval that touches double
 digits. Tightening this requires expanding the benign test set
-substantially (roughly n ≥ 200 benign per DOCS-era §8 estimate). Treat
+substantially (roughly n ≥ 200 benign). Treat
 the FP and recall targets symmetrically — both have CI problems.
 
 ### 3.1 Sensitivity (post-hoc, not used to pick operating point)
