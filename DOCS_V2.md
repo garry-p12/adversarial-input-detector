@@ -129,6 +129,15 @@ on the boundary in both setups.
 contaminated setup hid. Lower CI bound is now 73.33%, well below the 90%
 target.
 
+**FP target passes on point estimate only — CI flag.** FP rate is 3.23%
+on a single benign FP in 31 rows. The 95% bootstrap CI extends to 9.68%,
+which is **above the 5% target**. One additional benign FP swings the
+rate to 6.45%. Practically: the FP target is not safely passed; it is
+passed on a point estimate with a confidence interval that touches double
+digits. Tightening this requires expanding the benign test set
+substantially (roughly n ≥ 200 benign per DOCS-era §8 estimate). Treat
+the FP and recall targets symmetrically — both have CI problems.
+
 ### 3.1 Sensitivity (post-hoc, not used to pick operating point)
 
 Val was too small (n=15 adv) to discriminate between `cls_conj` values in
@@ -186,6 +195,16 @@ rules.
 A separate set of 30 hand-authored probes, never seen during training or
 tuning, was scored through the v2 retrained model + val-tuned policy.
 Probes target the gap categories the reviewer surfaced.
+
+> **Provenance note.** The reviewer's held-out probe file was not received
+> as part of the review materials, so these 30 probes were self-authored
+> as a best-effort substitute. They are designed to stress exactly the
+> categories the reviewer called out (corporate euphemism, biology-vocab
+> obfuscation, homoglyph/zero-width, context inversion, register-balanced)
+> rather than to be an independent third-party set. The results below
+> should be read as a self-audit, not as an external evaluation. If the
+> reviewer's probe set is later supplied, `probe_scoring.py` can be
+> pointed at it without code changes — only `probes.csv` differs.
 
 Definitions in `institute_perimeter/evaluation/probes.csv`. Per-probe
 verdicts and subscores in `evaluation/probe_report.md`.
@@ -269,13 +288,17 @@ is shallow.
 
 | Target               | Original report | Clean methodology       | Status                  |
 |----------------------|-----------------|-------------------------|-------------------------|
-| FP rate < 5%         | 3.23% ✓          | 3.23% ✓                 | passes, CI still wide   |
-| Recall > 90%         | 96.88% ✓         | 86.67% ✗ (CI [73, 97]) | **fails on the clean setup** |
+| FP rate < 5%         | 3.23% ✓          | 3.23% ✓ (CI [0, 9.68]) | **point passes, CI fails** |
+| Recall > 90%         | 96.88% ✓         | 86.67% ✗ (CI [73, 97]) | **fails on both point and CI** |
 | p99 latency < 500ms  | 66.2ms ✓         | 56.2ms ✓                | passes                  |
 
-The recall target is not met under clean methodology. Closing it requires
-addressing the biology-obfuscation + directionality-subtle gap (next
-section), not adjusting thresholds.
+Both detection targets have CI problems and should be read symmetrically.
+Recall fails on the point estimate; FP passes on point but the upper CI
+bound (9.68%) is nearly double the target. The recall failure is the
+more visible one, but neither target is robust at the current n.
+Closing the recall gap requires addressing the biology-obfuscation +
+directionality-subtle gap (next section), not adjusting thresholds.
+Tightening the FP CI requires a much larger benign test set.
 
 ### 5.2 Per-detector verdict
 
@@ -320,12 +343,18 @@ The 31-row val set was the bottleneck on threshold selection. K-fold CV
 on the 241-row train+val pool would yield much better threshold
 estimates. Worth doing before deploying the val-tuned operating point.
 
-**Lower priority — register leakage in the corpus.**
+**Lower priority — register leakage in the corpus (UNRESOLVED).**
 The 22:0 adversarial:benign ratio on tokens like "quietly", "cleared",
-"execution", "treat" remains a concern. Mitigation: add benign rows that
-legitimately use these tokens (e.g. "treat" in medical contexts,
-"execution" in protocol-execution language). Without this, register
-balance still partly explains the embedding-stack signal.
+"execution", "treat" remains a concern. **No code-level fix was applied
+in this rerun** — the dedup + retrain steps do not address it.
+Mitigation: add benign rows that legitimately use these tokens (e.g.
+"treat" in medical contexts, "execution" in protocol-execution language).
+Without this, register balance still partly explains the embedding-stack
+signal, and generalization confidence on out-of-corpus phrasings is
+correspondingly weaker. The probe results in §4 suggest the classifier
+*does* generalize beyond pure register cues (corporate euphemism caught
+without these tokens), but the contribution from register is not zero
+and has not been disentangled.
 
 **Lower priority — homoglyph robustness.**
 Probes held but P10 cleared the conjunction by 0.012. A Unicode
@@ -340,6 +369,29 @@ cheaply.
   back into test will just re-introduce the leak.
 - Pruning the corpus further to chase a higher headline. The
   contamination was incidental, not systemic.
+
+### 5.5 Open items not addressed in this rerun
+
+These are items the reviewer flagged that the dedup + retrain rerun did
+not close. Each is a real gap; listed here explicitly so they are not
+mistaken for resolved.
+
+- **Pytest suite under-tests the embedding stack.** All 7 tests in
+  `tests/test_screen.py` pass even with a broken embedder, because the
+  three adversarial test cases all hit `rule_based >= 0.5` and the
+  benign tests don't exercise the embedding path either. The probe
+  audit in §4 demonstrates that the embedding stack works, but the
+  pytest suite does not. Concrete fix: add a test that calls `screen()`
+  on a payload with `rule_based == 0.0` and a known classifier score
+  ≥ `cls_conj`, and asserts `verdict != ALLOW`. Probe P01 ("Sunset the
+  longevity portfolio…") is a good candidate. **Not applied in this
+  rerun.**
+- **Register leakage (§5.3).** Corpus token imbalance unresolved.
+- **FP CI upper bound (§5.1).** Requires expanded benign test set, not
+  a model change. Not addressed.
+- **Reviewer's own probe file not received.** The 30 probes in §4 are
+  self-authored to target the reviewer's flagged categories. An
+  external probe set would be more independent.
 
 ---
 
