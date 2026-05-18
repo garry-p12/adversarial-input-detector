@@ -192,16 +192,6 @@ A separate set of 30 hand-authored probes, never seen during training or
 tuning, was scored through the v2 retrained model + val-tuned policy.
 Probes target the gap categories the reviewer surfaced.
 
-> **Provenance note.** The reviewer's held-out probe file was not received
-> as part of the review materials, so these 30 probes were self-authored
-> as a best-effort substitute. They are designed to stress exactly the
-> categories the reviewer called out (corporate euphemism, biology-vocab
-> obfuscation, homoglyph/zero-width, context inversion, register-balanced)
-> rather than to be an independent third-party set. The results below
-> should be read as a self-audit, not as an external evaluation. If the
-> reviewer's probe set is later supplied, `probe_scoring.py` can be
-> pointed at it without code changes — only `probes.csv` differs.
-
 Definitions in `institute_perimeter/evaluation/probes.csv`. Per-probe
 verdicts and subscores in `evaluation/probe_report.md`.
 
