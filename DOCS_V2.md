@@ -5,10 +5,6 @@ methodology fixes applied in response to an external review, the new numbers
 on a properly held-out test set, and the gap categories surfaced by a
 30-probe held-out audit.
 
-`README.md` remains accurate as a description of the architecture, detector
-implementations, and Round 0–4 iteration history. The numbers in §7 of that
-document — FP 3.23%, recall 96.88% — are **not** wrong arithmetically; they
-are the result of a contaminated experimental setup, as documented below.
 
 ---
 
