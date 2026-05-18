@@ -8,7 +8,7 @@ on a properly held-out test set, and the gap categories surfaced by a
 
 ---
 
-## 1. What the reviewer found
+## 1. Issues found in first feedback by Oleg
 
 The review (see project history) identified two methodology issues that
 inflated the reported metrics, plus three substantive system gaps:
