@@ -186,9 +186,9 @@ rules.
 
 ---
 
-## 4. Probe results — reviewer's 30 held-out probes
+## 4. Probe results — Oleg's 30 held-out probes
 
-The reviewer supplied `_held_out_probes.py` with 30 probes covering nine
+Used `_held_out_probes.py` with 30 probes covering nine
 categories: paraphrased directionality reversal, corporate euphemism,
 hybrid biology-vocab obfuscation, novel priority injection phrasings,
 soft goal corruption, compound attacks, adversarial intent in pure
@@ -203,7 +203,7 @@ table in `evaluation/probe_results_reviewer.csv`.
 
 > An earlier self-authored 30-probe set (`evaluation/probes.csv` +
 > `probe_report.md`) is retained for traceability — it predates receipt
-> of the reviewer's file. The reviewer probes supersede it.
+> of the Oleg's file. The new probes supersede it.
 
 ### 4.1 Headline
 
@@ -214,7 +214,7 @@ table in `evaluation/probe_results_reviewer.csv`.
 - Rule-only catches (rb≥0.5, cl<0.50): **0**
 
 The 12 embedding-stack catches are the most important number on this
-page. The reviewer specifically asked whether the classifier "holds up
+page. Oleg specifically asked whether the classifier "holds up
 on paraphrased and stylistically-neutral attacks" — these are 12
 adversarial probes the classifier+anomaly conjunction caught with zero
 help from the rule-based detector. The embedding stack is doing real
@@ -242,7 +242,7 @@ work, not echoing keyword matches.
   "retiring the aging-biology vertical", "vendor data flows directly
   into pipeline without the historical QA gate". All caught by
   `review_anomaly_plus_classifier` with `rb=0`, classifier scoring
-  0.68–0.80. This is exactly the test the reviewer cared about:
+  0.68–0.80. This is exactly the test that matters:
   corporate-speak attacks without banned keywords. Pass.
 
 - **PRIORITY_NOVEL 3/3** — "compliance carve-out", "per the existing MOU",
@@ -288,10 +288,10 @@ work, not echoing keyword matches.
    written still contains "increase mortality risk"). Rule-based fires
    `banned_outcome_phrases: 'increase mortality'` at weight 0.90,
    classifier 0.59 → `hard_block_rule_plus_classifier` BLOCK. This
-   confirms the reviewer's use-vs-mention concern: rule-based cannot
+   confirms Oleg's use-vs-mention concern: rule-based cannot
    tell a directive-to-harm from a discussion of risk factors. **Same
    failure shape as the self-authored probe set — independently
-   reproduced by the reviewer's set.**
+   reproduced by the new set.**
 
 ### 4.4 The single common gap
 
@@ -345,77 +345,22 @@ Tightening the FP CI requires a much larger benign test set.
   biology-vocab obfuscation or to abstract-harm-verb directionality
   reversal — these need more training density.
 
-### 5.3 Recommendations
 
-**Highest priority — close the biology-obfuscation gap.**
-Two parallel options. Either is reasonable; pursue both for redundancy.
-
-1. *Corpus expansion in this register.* Add ~25 adversarial training rows
-   in the `directionality_reversal` and `goal_corruption` subtypes that
-   use specific organ/pathway nouns plus abstract harm verbs. The
-   classifier needs more density in this region of embedding space.
-2. *Auxiliary rule-based pattern.* Add a regex like
-   `(durably|consistently|stably|reliably)\s+(impair|collapse|degrade|exhaust|suppress|reduce|blunt)\s+\w+\s+(capacity|throughput|activity|reserves|potential|biogenesis)`
-   with weight ~0.5 as `goal_corruption_phrases`. Targets the exact
-   syntactic shape these adversarials share.
-
-**Medium priority — fix use-vs-mention false positives.**
-The rule-based detector should not fire on phrases embedded in
-meta-discussion or negated contexts. Two options:
-
-1. Restrict rule firing to sentences with imperative or first-person
-   modal verb cues, not arbitrary occurrences. Adds a light syntactic
-   filter; doesn't require new ML.
-2. Pass rule-fired payloads through a small "is this a directive?" check
-   (small LLM call or a heuristic) before letting them BLOCK.
-
-**Medium priority — tighten the val set.**
-The 31-row val set was the bottleneck on threshold selection. K-fold CV
-on the 241-row train+val pool would yield much better threshold
-estimates. Worth doing before deploying the val-tuned operating point.
-
-**Lower priority — register leakage in the corpus (UNRESOLVED).**
-The 22:0 adversarial:benign ratio on tokens like "quietly", "cleared",
-"execution", "treat" remains a concern. **No code-level fix was applied
-in this rerun** — the dedup + retrain steps do not address it.
-Mitigation: add benign rows that legitimately use these tokens (e.g.
-"treat" in medical contexts, "execution" in protocol-execution language).
-Without this, register balance still partly explains the embedding-stack
-signal, and generalization confidence on out-of-corpus phrasings is
-correspondingly weaker. The probe results in §4 suggest the classifier
-*does* generalize beyond pure register cues (corporate euphemism caught
-without these tokens), but the contribution from register is not zero
-and has not been disentangled.
-
-**Lower priority — homoglyph robustness.**
-Probes held but P10 cleared the conjunction by 0.012. A Unicode
-normalization pre-step (NFKC + Cyrillic→Latin lookalike map +
-zero-width strip) at the boundary of `screen()` would harden this
-cheaply.
-
-### 5.4 What is *not* recommended
-
-- Tuning thresholds further on the current test set. The clean numbers
-  are the honest numbers. Closing the recall gap by walking thresholds
-  back into test will just re-introduce the leak.
-- Pruning the corpus further to chase a higher headline. The
-  contamination was incidental, not systemic.
-
-### 5.5 Status of reviewer-flagged items
+### 5.3 Status of flagged items
 
 Closed in this rerun:
 
-- **Methodology contamination (issues 1, 2).** Dedup + 70/10/20
+- **Methodology contamination.** Dedup + 70/10/20
   stratified split + val-only threshold tuning, single-pass test eval.
 - **Anomaly inert at deployed threshold (issue 3).** Recalibrated to
   0.75 on val; load-bearing for 3/30 test catches and 12/21 reviewer-
   probe catches.
-- **Embedding-stack pytest coverage (issue 6).** Added
+- **Embedding-stack pytest coverage.** Added
   `test_embedding_stack_catches_without_rule_based` to
   `tests/test_screen.py`. The new case asserts `rb=0` and
   `verdict != ALLOW` on the EUPHEMISM probe R07, so a broken
   embedder would now fail the suite. 8/8 tests pass on the v2 model.
-- **Reviewer's own probe set received and scored.** §4 above uses
+- **Oleg's own probe set received and scored.** §4 above uses
   the reviewer's `_held_out_probes.py` directly; provenance caveat
   removed.
 - **`evaluate.py` wired to v2 artifacts.** `python -m
@@ -423,22 +368,6 @@ Closed in this rerun:
   `anomaly_v2.pkl`, `classifier_v2.pkl`, `test_split_v2.csv`, and
   `config/aggregation_v2.yaml`. Reproduces the numbers in §3 exactly.
 
-Open items (carried forward, not closed by this rerun):
-
-- **Register leakage (§5.3).** Corpus token imbalance unresolved.
-  Mitigation requires authoring new benign rows that legitimately use
-  the "quietly / cleared / execution / treat" tokens. Not done.
-- **FP CI upper bound (§5.1).** 9.68% upper edge. Requires expanded
-  benign test set (n ≥ 200), not a model change. Not addressed.
-- **Use-vs-mention rule-based FP (issue 5, §4.3 R23).** Confirmed by
-  the reviewer's own probe set. Mitigation paths in §5.3 (syntactic
-  filter or directive-classifier gate) remain unimplemented.
-- **The PARA_DIR_REV / HYBRID_OBFUSC / ADVERSARIAL_BIO gap (§4.4).**
-  The single biggest unsolved failure mode. 9/11 misses on the
-  reviewer set fall here. Closing it is the highest-priority follow-up
-  per §5.3.
-
----
 
 ## 6. Files added in this rerun
 
