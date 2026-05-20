@@ -1,9 +1,13 @@
+import argparse
 import json
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
+import institute_perimeter.screen as screen_mod
+from institute_perimeter.detectors.anomaly import MahalanobisAnomalyDetector
+from institute_perimeter.detectors.classifier import AdversarialClassifier
 from institute_perimeter.models import InstituteInput, InputSource, Verdict
 from institute_perimeter.screen import screen
 
@@ -11,10 +15,40 @@ from institute_perimeter.screen import screen
 _PKG_ROOT = Path(__file__).resolve().parent.parent
 _TEST_SPLIT_PATH = _PKG_ROOT / "artifacts" / "test_split.csv"
 _REPORT_PATH = _PKG_ROOT / "evaluation" / "report.json"
+_V2_TEST_SPLIT_PATH = _PKG_ROOT / "artifacts" / "test_split_v2.csv"
+_V2_ANOMALY_PATH = _PKG_ROOT / "artifacts" / "anomaly_v2.pkl"
+_V2_CLASSIFIER_PATH = _PKG_ROOT / "artifacts" / "classifier_v2.pkl"
+_V2_REPORT_PATH = _PKG_ROOT / "evaluation" / "report_v2.json"
+_V2_RULES_PATH = _PKG_ROOT / "config" / "aggregation_v2.yaml"
+
+
+def _activate_v2():
+    """Force screen() to use v2 artifacts + val-tuned aggregation rules."""
+    from institute_perimeter.aggregator import load_rules
+    anomaly = MahalanobisAnomalyDetector()
+    anomaly.load(str(_V2_ANOMALY_PATH))
+    clf = AdversarialClassifier()
+    clf.load(str(_V2_CLASSIFIER_PATH))
+    screen_mod._lazy_load()
+    screen_mod._ANOMALY_DETECTOR = anomaly
+    screen_mod._CLASSIFIER = clf
+    screen_mod._RULES = load_rules(str(_V2_RULES_PATH))
 
 
 def main():
-    df = pd.read_csv(_TEST_SPLIT_PATH)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--v2", action="store_true",
+                        help="Use v2 artifacts (clean-methodology rerun): test_split_v2.csv, anomaly_v2.pkl, classifier_v2.pkl")
+    args = parser.parse_args()
+
+    test_path = _V2_TEST_SPLIT_PATH if args.v2 else _TEST_SPLIT_PATH
+    report_path = _V2_REPORT_PATH if args.v2 else _REPORT_PATH
+
+    if args.v2:
+        _activate_v2()
+        print(f"[v2 mode] Using {test_path.name}, anomaly_v2.pkl, classifier_v2.pkl")
+
+    df = pd.read_csv(test_path)
 
     # Warm-up call (not measured)
     screen(InstituteInput(payload="warmup hypothesis about senolytics in aged mice"), InputSource.INTERNAL)
@@ -106,9 +140,9 @@ def main():
         "breakdown": breakdown,
         "rows": rows,
     }
-    with open(_REPORT_PATH, "w") as f:
+    with open(report_path, "w") as f:
         json.dump(report, f, indent=2)
-    print(f"Report saved to {_REPORT_PATH}")
+    print(f"Report saved to {report_path}")
 
 
 if __name__ == "__main__":
